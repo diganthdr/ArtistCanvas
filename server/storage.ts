@@ -7,6 +7,7 @@ import {
   orders, Order, InsertOrder,
   orderItems, OrderItem, InsertOrderItem
 } from "@shared/schema";
+import { z } from "zod";
 
 export interface IStorage {
   // Artwork methods
@@ -282,7 +283,22 @@ export class MemStorage implements IStorage {
 
   async createArtwork(artwork: InsertArtwork): Promise<Artwork> {
     const id = this.currentIds.artwork++;
-    const newArtwork: Artwork = { ...artwork, id };
+    
+    // Create a new object with all required properties explicitly defined
+    const newArtwork: Artwork = {
+      id,
+      title: artwork.title,
+      description: artwork.description,
+      medium: artwork.medium,
+      size: artwork.size,
+      price: artwork.price,
+      imageUrl: artwork.imageUrl,
+      year: artwork.year,
+      isFeatured: artwork.isFeatured ?? false,
+      inStock: artwork.inStock ?? true,
+      isFramed: artwork.isFramed ?? false
+    };
+    
     this.artworks.set(id, newArtwork);
     return newArtwork;
   }
@@ -394,7 +410,16 @@ export class MemStorage implements IStorage {
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
     const id = this.currentIds.order++;
     const now = new Date();
-    const newOrder: Order = { ...order, id, createdAt: now };
+    
+    // Create a new order with all required properties explicitly defined
+    const newOrder: Order = {
+      id,
+      email: order.email,
+      total: order.total,
+      status: order.status || 'pending',
+      createdAt: now
+    };
+    
     this.orders.set(id, newOrder);
     
     const orderItems: OrderItem[] = items.map(item => {

@@ -1,0 +1,15 @@
+{
+  "name": "diganth-art-portfolio-tests",
+  "version": "1.0.0",
+  "description": "Test scripts for Diganth Art Portfolio website",
+  "private": true,
+  "scripts": {
+    "test:artwork": "node artwork-api-tests.js",
+    "test:workshop": "node workshop-api-tests.js",
+    "test:order": "node order-api-tests.js",
+    "test:all": "npm run test:artwork && npm run test:workshop && npm run test:order"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
