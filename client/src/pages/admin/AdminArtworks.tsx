@@ -169,9 +169,19 @@ export default function AdminArtworks() {
   // Add artwork mutation
   const addArtworkMutation = useMutation({
     mutationFn: async (newArtwork: ArtworkFormValues) => {
+      // Map client fields to server fields, extracting only the fields we want to send
+      const { creationYear, featured, forSale, ...rest } = newArtwork;
+      
+      const serverArtwork = {
+        ...rest,
+        year: String(creationYear), // Convert creationYear to year as string
+        isFeatured: featured,
+        inStock: forSale,
+      };
+      
       return apiRequest("/api/artworks", {
         method: "POST",
-        body: JSON.stringify(newArtwork),
+        body: JSON.stringify(serverArtwork),
       });
     },
     onSuccess: () => {
@@ -184,6 +194,7 @@ export default function AdminArtworks() {
       addForm.reset();
     },
     onError: (error) => {
+      console.error("Add artwork error:", error);
       toast({
         title: "Error",
         description: "Failed to add artwork. Please try again.",
@@ -195,9 +206,19 @@ export default function AdminArtworks() {
   // Update artwork mutation
   const updateArtworkMutation = useMutation({
     mutationFn: async ({ id, artwork }: { id: number; artwork: ArtworkFormValues }) => {
+      // Map client fields to server fields, extracting only the fields we want to send
+      const { creationYear, featured, forSale, ...rest } = artwork;
+      
+      const serverArtwork = {
+        ...rest,
+        year: String(creationYear), // Convert creationYear to year as string
+        isFeatured: featured,
+        inStock: forSale,
+      };
+      
       return apiRequest(`/api/artworks/${id}`, {
         method: "PATCH",
-        body: JSON.stringify(artwork),
+        body: JSON.stringify(serverArtwork),
       });
     },
     onSuccess: () => {
@@ -209,6 +230,7 @@ export default function AdminArtworks() {
       setIsEditDialogOpen(false);
     },
     onError: (error) => {
+      console.error("Update artwork error:", error);
       toast({
         title: "Error",
         description: "Failed to update artwork. Please try again.",
@@ -276,6 +298,8 @@ export default function AdminArtworks() {
   // Handle edit artwork
   const handleEditArtwork = (artwork: any) => {
     setSelectedArtwork(artwork);
+    
+    // Map server fields to client fields
     editForm.reset({
       title: artwork.title,
       description: artwork.description,
@@ -283,10 +307,11 @@ export default function AdminArtworks() {
       size: artwork.size,
       price: artwork.price,
       imageUrl: artwork.imageUrl,
-      featured: artwork.featured,
-      forSale: artwork.forSale,
-      creationYear: artwork.creationYear,
+      featured: artwork.isFeatured || false,
+      forSale: artwork.inStock || true,
+      creationYear: parseInt(artwork.year) || new Date().getFullYear(),
     });
+    
     setIsEditDialogOpen(true);
   };
   
@@ -568,7 +593,7 @@ export default function AdminArtworks() {
                   <TableHead>Size</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-center">Featured</TableHead>
-                  <TableHead className="text-center">For Sale</TableHead>
+                  <TableHead className="text-center">In Stock</TableHead>
                   <TableHead className="text-right w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -589,10 +614,10 @@ export default function AdminArtworks() {
                     <TableCell>{artwork.size}</TableCell>
                     <TableCell className="text-right">${artwork.price}</TableCell>
                     <TableCell className="text-center">
-                      {artwork.featured ? "Yes" : "No"}
+                      {artwork.isFeatured ? "Yes" : "No"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {artwork.forSale ? "Yes" : "No"}
+                      {artwork.inStock ? "Yes" : "No"}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
