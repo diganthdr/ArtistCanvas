@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -12,8 +12,54 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  const imagesDir = path.join(uploadsDir, 'images');
+  
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+  }
+  
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir);
+  }
+  
+  // Configure multer for file uploads
+  const multerStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, imagesDir);
+    },
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    }
+  });
+  
+  const upload = multer({ 
+    storage: multerStorage,
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (_req, file, cb) => {
+      // Allow only image files
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'));
+      }
+    }
+  });
+  
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  
   // Error handling middleware for Zod validation errors
   const handleZodError = (err: unknown, res: Response) => {
     if (err instanceof ZodError) {
@@ -144,6 +190,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete artwork" });
     }
   });
+  
+  // Image upload endpoint for artworks
+  app.post("/api/upload/image", upload.single('image'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Return the path where the image was stored
+      const imagePath = `/uploads/images/${req.file.filename}`;
+      res.status(201).json({ 
+        imagePath,
+        message: "File uploaded successfully" 
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
 
   // Workshop routes
   app.get("/api/workshops", async (_req, res) => {
@@ -253,7 +318,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const registration = await storage.createRegistration(registrationData);
-      res.status(201).json(registration);
+      
+      // Send confirmation email to the student (in a real app, this would use an email service)
+      console.log(`[Workshop Registration] Confirmation email sent to ${registration.email} for workshop "${workshop.title}"`);
+      
+      res.status(201).json({
+        ...registration,
+        notificationSent: true
+      });
     } catch (err) {
       handleZodError(err, res);
     }
@@ -271,6 +343,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+  
+  // Workshop notification endpoint for admin to send updates to all registered students
+  app.post("/api/workshops/:id/notify", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid workshop ID" });
+      }
+      
+      // Get the workshop details
+      const workshop = await storage.getWorkshopById(id);
+      if (!workshop) {
+        return res.status(404).json({ message: "Workshop not found" });
+      }
+      
+      // Get all registrations for this workshop
+      const registrations = await storage.getRegistrationsByWorkshopId(id);
+      if (registrations.length === 0) {
+        return res.status(404).json({ message: "No registrations found for this workshop" });
+      }
+      
+      // Extract the message from the request body
+      const { subject, message } = req.body;
+      if (!subject || !message) {
+        return res.status(400).json({ message: "Subject and message are required" });
+      }
+      
+      // In a real app, send emails to all registered students
+      // For this example, just log the notifications
+      console.log(`[Workshop Update] Notification sent for "${workshop.title}"`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Message: ${message}`);
+      console.log(`Recipients: ${registrations.map(r => r.email).join(', ')}`);
+      
+      res.status(200).json({ 
+        message: "Notifications sent successfully", 
+        recipientCount: registrations.length,
+        workshopTitle: workshop.title
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to send notifications" });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,7 +77,7 @@ const artworkFormSchema = z.object({
   medium: z.string().min(1, "Medium is required"),
   size: z.string().min(1, "Size is required"),
   price: z.coerce.number().positive("Price must be a positive number"),
-  imageUrl: z.string().url("Please enter a valid image URL"),
+  imageUrl: z.string().min(1, "Image URL is required"),
   featured: z.boolean().default(false),
   forSale: z.boolean().default(true),
   creationYear: z.coerce.number().positive("Year must be a positive number"),
@@ -90,12 +90,80 @@ export default function AdminArtworks() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedArtwork, setSelectedArtwork] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
   
   const { toast } = useToast();
   
   // Fetch artworks
   const { data: artworks = [], isLoading } = useQuery<Artwork[]>({
     queryKey: ["/api/artworks"],
+  });
+  
+  // Image upload mutation for adding artwork
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Image upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Set the image URL in the form
+      addForm.setValue('imageUrl', data.imagePath);
+      toast({
+        title: "Image Uploaded",
+        description: "The image has been uploaded successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Image upload mutation for editing artwork
+  const uploadEditImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Image upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Set the image URL in the edit form
+      editForm.setValue('imageUrl', data.imagePath);
+      toast({
+        title: "Image Uploaded",
+        description: "The image has been uploaded successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
   
   // Add artwork mutation
@@ -226,6 +294,36 @@ export default function AdminArtworks() {
   const handleDeleteArtwork = (artwork: any) => {
     setSelectedArtwork(artwork);
     setIsDeleteDialogOpen(true);
+  };
+  
+  // Handle file change for add form
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadImageMutation.mutate(file);
+    }
+  };
+  
+  // Handle file change for edit form
+  const handleEditFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadEditImageMutation.mutate(file);
+    }
+  };
+  
+  // Trigger file input click for add form
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Trigger file input click for edit form
+  const handleEditUploadClick = () => {
+    if (editFileInputRef.current) {
+      editFileInputRef.current.click();
+    }
   };
   
   // Handle form submissions
@@ -380,9 +478,26 @@ export default function AdminArtworks() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Image URL</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={handleUploadClick}
+                            disabled={uploadImageMutation.isPending}
+                          >
+                            {uploadImageMutation.isPending ? "Uploading..." : "Upload"}
+                          </Button>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -628,9 +743,26 @@ export default function AdminArtworks() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Image URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleEditUploadClick}
+                          disabled={uploadEditImageMutation.isPending}
+                        >
+                          {uploadEditImageMutation.isPending ? "Uploading..." : "Upload"}
+                        </Button>
+                        <input
+                          type="file"
+                          ref={editFileInputRef}
+                          onChange={handleEditFileChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
