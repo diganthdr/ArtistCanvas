@@ -1,4 +1,5 @@
 import { 
+  users, User, InsertUser,
   artworks, Artwork, InsertArtwork,
   workshops, Workshop, InsertWorkshop,
   registrations, Registration, InsertRegistration,
@@ -9,7 +10,14 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+import session from "express-session";
+
 export interface IStorage {
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
   // Artwork methods
   getAllArtworks(): Promise<Artwork[]>;
   getArtworkById(id: number): Promise<Artwork | undefined>;
@@ -41,9 +49,13 @@ export interface IStorage {
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
   getOrderById(id: number): Promise<{ order: Order, items: OrderItem[] } | undefined>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
+  
+  // Session store
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<number, User>;
   private artworks: Map<number, Artwork>;
   private workshops: Map<number, Workshop>;
   private registrations: Map<number, Registration>;
@@ -51,7 +63,9 @@ export class MemStorage implements IStorage {
   private subscribers: Map<number, Subscriber>;
   private orders: Map<number, Order>;
   private orderItems: Map<number, OrderItem[]>;
+  public sessionStore: session.Store;
   private currentIds: {
+    user: number;
     artwork: number;
     workshop: number;
     registration: number;
@@ -62,6 +76,7 @@ export class MemStorage implements IStorage {
   };
 
   constructor() {
+    this.users = new Map();
     this.artworks = new Map();
     this.workshops = new Map();
     this.registrations = new Map();
@@ -69,7 +84,12 @@ export class MemStorage implements IStorage {
     this.subscribers = new Map();
     this.orders = new Map();
     this.orderItems = new Map();
+    
+    // Initialize with a default memory store
+    this.sessionStore = new session.MemoryStore();
+    
     this.currentIds = {
+      user: 1,
       artwork: 1,
       workshop: 1,
       registration: 1,
@@ -83,7 +103,39 @@ export class MemStorage implements IStorage {
     this.initializeSampleData();
   }
 
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      user => user.username === username
+    );
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = this.currentIds.user++;
+    const now = new Date();
+    const newUser: User = {
+      id,
+      username: user.username,
+      password: user.password,
+      isAdmin: user.isAdmin ?? true,
+      createdAt: now
+    };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+
   private initializeSampleData() {
+    // Create admin user
+    this.createUser({
+      username: "admin",
+      password: "DiguArt@420",
+      isAdmin: true
+    });
+
     // Sample artworks
     const sampleArtworks: InsertArtwork[] = [
       {

@@ -15,8 +15,12 @@ import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { setupAuth } from "./auth-simple";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  const { isAdmin } = setupAuth(app);
+
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
   const imagesDir = path.join(uploadsDir, 'images');
@@ -121,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/artworks", async (req, res) => {
+  app.post("/api/artworks", isAdmin, async (req, res) => {
     try {
       const artworkData = insertArtworkSchema.parse(req.body);
       const artwork = await storage.createArtwork(artworkData);
@@ -131,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/artworks/:id", async (req, res) => {
+  app.patch("/api/artworks/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -152,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Keep the PUT endpoint for backward compatibility
-  app.put("/api/artworks/:id", async (req, res) => {
+  app.put("/api/artworks/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -172,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/artworks/:id", async (req, res) => {
+  app.delete("/api/artworks/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -192,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Image upload endpoint for artworks
-  app.post("/api/upload/image", upload.single('image'), (req, res) => {
+  app.post("/api/upload/image", isAdmin, upload.single('image'), (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -251,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/workshops", async (req, res) => {
+  app.post("/api/workshops", isAdmin, async (req, res) => {
     try {
       const workshopData = insertWorkshopSchema.parse(req.body);
       const workshop = await storage.createWorkshop(workshopData);
@@ -261,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/workshops/:id", async (req, res) => {
+  app.patch("/api/workshops/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -282,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Keep the PUT endpoint for backward compatibility
-  app.put("/api/workshops/:id", async (req, res) => {
+  app.put("/api/workshops/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -331,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/workshops/:id/registrations", async (req, res) => {
+  app.get("/api/workshops/:id/registrations", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -347,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Workshop notification endpoint for admin to send updates to all registered students
-  app.post("/api/workshops/:id/notify", async (req, res) => {
+  app.post("/api/workshops/:id/notify", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -438,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/orders/:id", async (req, res) => {
+  app.get("/api/orders/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -457,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/orders/:id/status", async (req, res) => {
+  app.put("/api/orders/:id/status", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {

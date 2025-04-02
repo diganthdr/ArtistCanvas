@@ -1,4 +1,5 @@
 import { 
+  User, InsertUser,
   Artwork, InsertArtwork,
   Workshop, InsertWorkshop,
   Registration, InsertRegistration,
@@ -6,13 +7,51 @@ import {
   Subscriber, InsertSubscriber,
   Order, InsertOrder,
   OrderItem, InsertOrderItem,
-  artworks, workshops, registrations, contacts, subscribers, orders, orderItems
+  users, artworks, workshops, registrations, contacts, subscribers, orders, orderItems
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import session from "express-session";
 
 export class PgStorage implements IStorage {
+  public sessionStore: session.Store;
+  
+  constructor() {
+    // Create a memory store for sessions
+    import('memorystore').then(memorystore => {
+      const MemoryStore = memorystore.default(session);
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      });
+    });
+    
+    // Initialize with a default store until import completes
+    this.sessionStore = new session.MemoryStore();
+  }
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const results = await db.query.users.findMany({
+      where: eq(users.id, id)
+    });
+    return results[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const results = await db.query.users.findMany({
+      where: eq(users.username, username)
+    });
+    return results[0];
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const result = await db.insert(users)
+      .values(user)
+      .returning();
+    return result[0];
+  }
+
   // Artwork methods
   async getAllArtworks(): Promise<Artwork[]> {
     return await db.query.artworks.findMany();

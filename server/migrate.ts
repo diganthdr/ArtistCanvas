@@ -1,21 +1,14 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import postgres from 'postgres';
+import { runMigrations } from "./database";
 
-// This script will run database migrations
-async function runMigrations() {
-  const client = postgres(process.env.DATABASE_URL!);
-  const db = drizzle(client);
-
-  console.log('Running migrations...');
-  
+// Run the migrations
+async function runMigrationsScript() {
   try {
-    await migrate(db, { migrationsFolder: 'drizzle' });
-    console.log('Migrations completed successfully');
+    await runMigrations();
+    process.exit(0);
   } catch (error) {
-    console.error('Migration failed:', error);
+    console.error("Migration script failed:", error);
     process.exit(1);
   }
 }
 
-runMigrations();
+runMigrationsScript();
