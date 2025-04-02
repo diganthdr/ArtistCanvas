@@ -25,6 +25,7 @@ async function seedDatabase() {
       // Create admin user
       await db.insert(users).values({
         username: "admin",
+        email: "admin@diganth.com",
         password: await hashPassword("DiguArt@420"),
         isAdmin: true,
         createdAt: new Date()

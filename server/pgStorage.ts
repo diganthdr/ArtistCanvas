@@ -5,7 +5,7 @@ import {
   type InsertUser, type InsertArtwork, type InsertWorkshop, type InsertRegistration, type InsertContact, type InsertSubscriber, type InsertOrder, type InsertOrderItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import pg from 'pg';
@@ -34,6 +34,46 @@ export class PgStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const now = new Date();
+    const [user] = await db.select().from(users)
+      .where(eq(users.resetToken, token));
+    
+    // Check if token has expired
+    if (user && user.resetTokenExpiry && user.resetTokenExpiry > now) {
+      return user;
+    }
+    
+    return undefined;
+  }
+
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const result = await db.update(users)
+      .set({ resetToken: token, resetTokenExpiry: expiry })
+      .where(eq(users.email, email))
+      .returning({ id: users.id });
+    
+    return result.length > 0;
+  }
+
+  async updatePassword(userId: number, newPassword: string): Promise<boolean> {
+    const result = await db.update(users)
+      .set({ 
+        password: newPassword,
+        resetToken: null,
+        resetTokenExpiry: null
+      })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    
+    return result.length > 0;
   }
 
   async createUser(user: InsertUser): Promise<User> {

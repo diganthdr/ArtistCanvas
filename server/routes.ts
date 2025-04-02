@@ -416,6 +416,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Password reset routes
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if the email exists or not for security reasons
+        return res.status(200).json({ message: "If your email is registered with us, you will receive a password reset link shortly." });
+      }
+      
+      // Generate a random token
+      const crypto = require('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Set the token to expire in 1 hour
+      const expiry = new Date();
+      expiry.setHours(expiry.getHours() + 1);
+      
+      // Save the token in the database
+      const success = await storage.setResetToken(email, token, expiry);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to generate reset token" });
+      }
+      
+      // In a real app, send an email with the reset link
+      const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
+      console.log(`[Password Reset] Link generated for ${email}: ${resetLink}`);
+      
+      res.status(200).json({ 
+        message: "If your email is registered with us, you will receive a password reset link shortly.",
+        resetLink // In a real app, don't send this in the response, but for testing/demo purposes
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+  
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Reset token is required" });
+      }
+      
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters long" });
+      }
+      
+      // Verify the token and get the user
+      const user = await storage.getUserByResetToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      // Hash the new password
+      const { scrypt, randomBytes } = require('crypto');
+      const { promisify } = require('util');
+      const scryptAsync = promisify(scrypt);
+      
+      const salt = randomBytes(16).toString("hex");
+      const buf = (await scryptAsync(newPassword, salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+      
+      // Update the password and clear the reset token
+      const success = await storage.updatePassword(user.id, hashedPassword);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
+      res.status(200).json({ message: "Password has been updated successfully" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
   // Order routes
   app.post("/api/orders", async (req, res) => {
     try {

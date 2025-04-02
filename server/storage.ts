@@ -15,7 +15,11 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  setResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  updatePassword(userId: number, newPassword: string): Promise<boolean>;
 
   // Artwork methods
   getAllArtworks(): Promise<Artwork[]>;
@@ -113,14 +117,50 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      user => user.email === email
+    );
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      user => user.resetToken === token && user.resetTokenExpiry && user.resetTokenExpiry > new Date()
+    );
+  }
+
+  async setResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const user = await this.getUserByEmail(email);
+    if (!user) return false;
+
+    user.resetToken = token;
+    user.resetTokenExpiry = expiry;
+    this.users.set(user.id, user);
+    return true;
+  }
+
+  async updatePassword(userId: number, newPassword: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+
+    user.password = newPassword;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    this.users.set(user.id, user);
+    return true;
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const id = this.currentIds.user++;
     const now = new Date();
     const newUser: User = {
       id,
       username: user.username,
+      email: user.email,
       password: user.password,
       isAdmin: user.isAdmin ?? true,
+      resetToken: null,
+      resetTokenExpiry: null,
       createdAt: now
     };
     this.users.set(id, newUser);
@@ -131,6 +171,7 @@ export class MemStorage implements IStorage {
     // Create admin user
     this.createUser({
       username: "admin",
+      email: "admin@diganth.com",
       password: "DiguArt@420",
       isAdmin: true
     });

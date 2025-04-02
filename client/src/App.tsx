@@ -15,6 +15,8 @@ import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import Cart from "@/pages/Cart";
 import AuthPage from "@/pages/auth-page";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminArtworks from "./pages/admin/AdminArtworks";
 import AdminWorkshops from "./pages/admin/AdminWorkshops";
@@ -40,6 +42,8 @@ function Router() {
           <Route path="/contact" component={Contact} />
           <Route path="/cart" component={Cart} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
           
           {/* Admin Routes - only accessible to admin users */}
           <AdminRoute path="/admin" component={AdminDashboard} />

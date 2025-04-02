@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertUserSchema } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -126,7 +126,7 @@ export default function AuthPage() {
                     />
                   </CardContent>
                   
-                  <CardFooter>
+                  <CardFooter className="flex flex-col gap-4">
                     <Button 
                       type="submit" 
                       className="w-full"
@@ -134,6 +134,13 @@ export default function AuthPage() {
                     >
                       {loginMutation.isPending ? "Logging in..." : "Login"}
                     </Button>
+                    <div className="text-center w-full">
+                      <Link href="/forgot-password">
+                        <span className="text-sm text-primary hover:underline cursor-pointer">
+                          Forgot Password?
+                        </span>
+                      </Link>
+                    </div>
                   </CardFooter>
                 </form>
               </Form>
