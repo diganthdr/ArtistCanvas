@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Navbar() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { items } = useCart();
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin;
 
   // Track window scroll position to add shadow
   useEffect(() => {
@@ -57,9 +60,11 @@ export default function Navbar() {
             <Link href="/contact" className={`font-body text-sm tracking-wide ${isActive("/contact") ? "text-accent" : "hover:text-accent"} transition`}>
               Contact
             </Link>
-            <Link href="/admin" className={`font-body text-sm tracking-wide ${isActive("/admin") ? "text-accent" : "hover:text-accent"} transition`}>
-              Admin
-            </Link>
+            {isAdmin && (
+              <Link href="/admin" className={`font-body text-sm tracking-wide ${isActive("/admin") ? "text-accent" : "hover:text-accent"} transition`}>
+                Admin
+              </Link>
+            )}
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingBag className="h-5 w-5" />
@@ -128,11 +133,13 @@ export default function Navbar() {
                         Contact
                       </div>
                     </Link>
-                    <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className={`px-2 py-2 rounded-md ${isActive("/admin") ? "bg-secondary text-accent" : ""}`}>
-                        Admin
-                      </div>
-                    </Link>
+                    {isAdmin && (
+                      <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
+                        <div className={`px-2 py-2 rounded-md ${isActive("/admin") ? "bg-secondary text-accent" : ""}`}>
+                          Admin
+                        </div>
+                      </Link>
+                    )}
                     <Link href="/cart" onClick={() => setIsMobileMenuOpen(false)}>
                       <div className={`px-2 py-2 rounded-md ${isActive("/cart") ? "bg-secondary text-accent" : ""}`}>
                         Cart ({items.length})

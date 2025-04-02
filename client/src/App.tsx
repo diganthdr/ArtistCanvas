@@ -3,7 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
-import { ProtectedRoute } from "@/lib/protected-route";
+import { ProtectedRoute, AdminRoute } from "@/lib/protected-route";
 import NotFound from "@/pages/not-found";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -18,11 +18,17 @@ import AuthPage from "@/pages/auth-page";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminArtworks from "./pages/admin/AdminArtworks";
 import AdminWorkshops from "./pages/admin/AdminWorkshops";
+import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin;
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      {/* Only show navbar on non-admin pages */}
+      {!isAdmin || window.location.pathname === "/" ? <Navbar /> : null}
+      
       <main className="flex-grow">
         <Switch>
           <Route path="/" component={Home} />
@@ -35,15 +41,16 @@ function Router() {
           <Route path="/cart" component={Cart} />
           <Route path="/auth" component={AuthPage} />
           
-          {/* Protected Admin Routes */}
-          <ProtectedRoute path="/admin" component={AdminDashboard} />
-          <ProtectedRoute path="/admin/artworks" component={AdminArtworks} />
-          <ProtectedRoute path="/admin/workshops" component={AdminWorkshops} />
+          {/* Admin Routes - only accessible to admin users */}
+          <AdminRoute path="/admin" component={AdminDashboard} />
+          <AdminRoute path="/admin/artworks" component={AdminArtworks} />
+          <AdminRoute path="/admin/workshops" component={AdminWorkshops} />
           
           <Route component={NotFound} />
         </Switch>
       </main>
-      <Footer />
+      {/* Only show footer on non-admin pages */}
+      {!isAdmin || window.location.pathname === "/" ? <Footer /> : null}
     </div>
   );
 }
