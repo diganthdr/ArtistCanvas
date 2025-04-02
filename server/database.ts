@@ -3,8 +3,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@shared/schema";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 
-// Initialize the postgres client
-const client = postgres(process.env.DATABASE_URL!);
+// Initialize the postgres client with SSL options
+const client = postgres(process.env.DATABASE_URL!, {
+  ssl: { rejectUnauthorized: false }
+});
 
 // Initialize the drizzle client with the schema
 export const db = drizzle(client, { schema });

@@ -47,6 +47,17 @@ app.use((req, res, next) => {
     await runMigrations();
     log('Database migrations completed successfully');
     
+    // Run custom migration to add email and reset columns
+    try {
+      log('Running custom migration to add email and reset columns...');
+      const emailResetModule = await import('../migrations/add-email-reset-columns.js');
+      await emailResetModule.default();
+      log('Email and reset columns migration completed successfully');
+    } catch (migrationError) {
+      log('Error running email and reset columns migration: ' + (migrationError as Error).message);
+      // Continue even if this migration fails
+    }
+    
     // Now run the seed script 
     try {
       log('Running database seed script...');
