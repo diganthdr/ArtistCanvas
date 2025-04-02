@@ -9,7 +9,6 @@ import {
   orderItems, OrderItem, InsertOrderItem
 } from "@shared/schema";
 import { z } from "zod";
-
 import session from "express-session";
 
 export interface IStorage {
@@ -513,5 +512,6 @@ export class MemStorage implements IStorage {
 // Import the PgStorage class
 import { PgStorage } from './pgStorage';
 
-// Use PgStorage for database persistence
+// Export both storage implementations and use PgStorage for database persistence
+export { PgStorage };
 export const storage = new PgStorage();

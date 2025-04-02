@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { connectToDatabase } from "./database";
+import { connectToDatabase, runMigrations } from "./database";
 
 const app = express();
 app.use(express.json());
@@ -38,10 +38,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Connect to the database
-  const dbConnected = await connectToDatabase();
-  if (!dbConnected) {
-    log('Failed to connect to the database. Exiting...');
+  // Connect to the database and run migrations
+  try {
+    await connectToDatabase();
+    log('Successfully connected to the database');
+    
+    // Run migrations
+    await runMigrations();
+    log('Database migrations completed successfully');
+    
+    // Now run the seed script 
+    try {
+      log('Running database seed script...');
+      const seedModule = await import('../migrations/seed.js');
+      await seedModule.default();
+      log('Database seed completed successfully');
+    } catch (seedError) {
+      log('Error running seed script: ' + (seedError as Error).message);
+      // Continue even if seeding fails
+    }
+  } catch (error) {
+    log('Failed to connect to the database or run migrations. Exiting...');
+    console.error(error);
     process.exit(1);
   }
   

@@ -1,221 +1,164 @@
-import { 
-  User, InsertUser,
-  Artwork, InsertArtwork,
-  Workshop, InsertWorkshop,
-  Registration, InsertRegistration,
-  Contact, InsertContact,
-  Subscriber, InsertSubscriber,
-  Order, InsertOrder,
-  OrderItem, InsertOrderItem,
-  users, artworks, workshops, registrations, contacts, subscribers, orders, orderItems
-} from "@shared/schema";
 import { IStorage } from "./storage";
+import { 
+  users, artworks, workshops, registrations, contacts, subscribers, orders, orderItems,
+  type User, type Artwork, type Workshop, type Registration, type Contact, type Subscriber, type Order, type OrderItem,
+  type InsertUser, type InsertArtwork, type InsertWorkshop, type InsertRegistration, type InsertContact, type InsertSubscriber, type InsertOrder, type InsertOrderItem
+} from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { eq, desc, and } from "drizzle-orm";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+import pg from 'pg';
+const { Pool } = pg;
+
+const PostgresSessionStore = connectPg(session);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
 
 export class PgStorage implements IStorage {
   public sessionStore: session.Store;
-  
+
   constructor() {
-    // Create a memory store for sessions
-    import('memorystore').then(memorystore => {
-      const MemoryStore = memorystore.default(session);
-      this.sessionStore = new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      });
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
     });
-    
-    // Initialize with a default store until import completes
-    this.sessionStore = new session.MemoryStore();
   }
-  // User methods
+
   async getUser(id: number): Promise<User | undefined> {
-    const results = await db.query.users.findMany({
-      where: eq(users.id, id)
-    });
-    return results[0];
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const results = await db.query.users.findMany({
-      where: eq(users.username, username)
-    });
-    return results[0];
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const result = await db.insert(users)
-      .values(user)
-      .returning();
-    return result[0];
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
   }
 
-  // Artwork methods
   async getAllArtworks(): Promise<Artwork[]> {
-    return await db.query.artworks.findMany();
+    return await db.select().from(artworks);
   }
 
   async getArtworkById(id: number): Promise<Artwork | undefined> {
-    const results = await db.query.artworks.findMany({
-      where: eq(artworks.id, id)
-    });
-    return results[0];
+    const [artwork] = await db.select().from(artworks).where(eq(artworks.id, id));
+    return artwork;
   }
 
   async getArtworksByMedium(medium: string): Promise<Artwork[]> {
-    return await db.query.artworks.findMany({
-      where: eq(artworks.medium, medium)
-    });
+    return await db.select().from(artworks).where(eq(artworks.medium, medium));
   }
 
   async getFeaturedArtworks(): Promise<Artwork[]> {
-    return await db.query.artworks.findMany({
-      where: eq(artworks.isFeatured, true)
-    });
+    return await db.select().from(artworks).where(eq(artworks.isFeatured, true));
   }
 
   async createArtwork(artwork: InsertArtwork): Promise<Artwork> {
-    const result = await db.insert(artworks)
-      .values(artwork)
-      .returning();
-    return result[0];
+    const [newArtwork] = await db.insert(artworks).values(artwork).returning();
+    return newArtwork;
   }
 
   async updateArtwork(id: number, artwork: Partial<InsertArtwork>): Promise<Artwork | undefined> {
-    const result = await db.update(artworks)
+    const [updatedArtwork] = await db.update(artworks)
       .set(artwork)
       .where(eq(artworks.id, id))
       .returning();
-    return result[0];
+    return updatedArtwork;
   }
 
   async deleteArtwork(id: number): Promise<boolean> {
-    const result = await db.delete(artworks)
-      .where(eq(artworks.id, id))
-      .returning();
-    return result.length > 0;
+    await db.delete(artworks).where(eq(artworks.id, id));
+    return true;
   }
 
-  // Workshop methods
   async getAllWorkshops(): Promise<Workshop[]> {
-    return await db.query.workshops.findMany();
+    return await db.select().from(workshops);
   }
 
   async getWorkshopById(id: number): Promise<Workshop | undefined> {
-    const results = await db.query.workshops.findMany({
-      where: eq(workshops.id, id)
-    });
-    return results[0];
+    const [workshop] = await db.select().from(workshops).where(eq(workshops.id, id));
+    return workshop;
   }
 
   async getWorkshopsByType(type: string): Promise<Workshop[]> {
-    return await db.query.workshops.findMany({
-      where: eq(workshops.type, type)
-    });
+    return await db.select().from(workshops).where(eq(workshops.type, type));
   }
 
   async createWorkshop(workshop: InsertWorkshop): Promise<Workshop> {
-    const result = await db.insert(workshops)
-      .values(workshop)
-      .returning();
-    return result[0];
+    const [newWorkshop] = await db.insert(workshops).values(workshop).returning();
+    return newWorkshop;
   }
 
   async updateWorkshop(id: number, workshop: Partial<InsertWorkshop>): Promise<Workshop | undefined> {
-    const result = await db.update(workshops)
+    const [updatedWorkshop] = await db.update(workshops)
       .set(workshop)
       .where(eq(workshops.id, id))
       .returning();
-    return result[0];
+    return updatedWorkshop;
   }
 
   async deleteWorkshop(id: number): Promise<boolean> {
-    const result = await db.delete(workshops)
-      .where(eq(workshops.id, id))
-      .returning();
-    return result.length > 0;
+    await db.delete(workshops).where(eq(workshops.id, id));
+    return true;
   }
-
-  // Registration methods
+  
   async createRegistration(registration: InsertRegistration): Promise<Registration> {
-    const result = await db.insert(registrations)
-      .values(registration)
-      .returning();
-    return result[0];
+    const [newRegistration] = await db.insert(registrations).values(registration).returning();
+    return newRegistration;
   }
-
+  
   async getRegistrationsByWorkshopId(workshopId: number): Promise<Registration[]> {
-    return await db.query.registrations.findMany({
-      where: eq(registrations.workshopId, workshopId)
-    });
+    return await db.select().from(registrations).where(eq(registrations.workshopId, workshopId));
   }
-
-  // Contact methods
+  
   async createContact(contact: InsertContact): Promise<Contact> {
-    const result = await db.insert(contacts)
-      .values(contact)
-      .returning();
-    return result[0];
+    const [newContact] = await db.insert(contacts).values(contact).returning();
+    return newContact;
   }
-
-  // Subscriber methods
+  
   async createSubscriber(subscriber: InsertSubscriber): Promise<Subscriber> {
-    const result = await db.insert(subscribers)
-      .values(subscriber)
-      .returning();
-    return result[0];
+    const [newSubscriber] = await db.insert(subscribers).values(subscriber).returning();
+    return newSubscriber;
   }
-
-  // Order methods
+  
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
-    // Start a transaction
-    // Note: Drizzle ORM with Neon serverless doesn't support transactions
-    // in the way other ORMs do, but we can still ensure data consistency
+    // Start a transaction to ensure both the order and items are created or neither is
+    const [newOrder] = await db.insert(orders).values(order).returning();
     
-    // 1. Create the order first
-    const orderResult = await db.insert(orders)
-      .values(order)
-      .returning();
+    // Insert each order item with the new order ID
+    const orderItemsWithId = items.map(item => ({
+      ...item,
+      orderId: newOrder.id
+    }));
     
-    const newOrder = orderResult[0];
-    
-    // 2. Create the order items with the new order ID
-    for (const item of items) {
-      await db.insert(orderItems)
-        .values({
-          ...item,
-          orderId: newOrder.id
-        });
-    }
+    await db.insert(orderItems).values(orderItemsWithId);
     
     return newOrder;
   }
-
+  
   async getOrderById(id: number): Promise<{ order: Order, items: OrderItem[] } | undefined> {
-    const orderResults = await db.query.orders.findMany({
-      where: eq(orders.id, id)
-    });
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
     
-    if (orderResults.length === 0) {
+    if (!order) {
       return undefined;
     }
     
-    const order = orderResults[0];
-    
-    const items = await db.query.orderItems.findMany({
-      where: eq(orderItems.orderId, id)
-    });
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id));
     
     return { order, items };
   }
-
+  
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
-    const result = await db.update(orders)
+    const [updatedOrder] = await db.update(orders)
       .set({ status })
       .where(eq(orders.id, id))
       .returning();
-    return result[0];
+    
+    return updatedOrder;
   }
 }
