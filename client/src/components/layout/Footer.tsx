@@ -3,8 +3,8 @@ import { Link } from "wouter";
 export default function Footer() {
   return (
     <footer className="bg-neutral py-12">
-      <div className="container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
             <Link href="/" className="font-heading text-2xl font-bold text-white hover:text-accent transition">
               Diganth

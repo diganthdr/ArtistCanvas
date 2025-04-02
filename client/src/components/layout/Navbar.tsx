@@ -91,14 +91,14 @@ export default function Navbar() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[80%] sm:w-[385px]">
+              <SheetContent side="right" className="w-[85%] sm:w-[385px] p-0">
                 <div className="flex flex-col h-full">
-                  <div className="flex justify-between items-center py-4">
+                  <div className="flex justify-between items-center p-4 border-b">
                     <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-heading text-xl font-bold">
                       Diganth
                     </Link>
                     <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </Button>
                   </div>
                   
