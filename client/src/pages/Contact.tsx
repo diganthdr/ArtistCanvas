@@ -12,10 +12,11 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Mail, Phone, Globe, Clock } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, Clock, Loader2, Instagram, Facebook, Twitter } from "lucide-react";
+import { SiteSetting } from "@shared/schema";
 
 // Define validation schema
 const contactFormSchema = z.object({
@@ -29,6 +30,17 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 export default function Contact() {
   const { toast } = useToast();
+  
+  // Fetch site settings
+  const { data: settings = [], isLoading: isLoadingSettings } = useQuery<SiteSetting[]>({
+    queryKey: ["/api/site-settings"],
+  });
+
+  // Get contact information from settings
+  const getSettingValue = (key: string) => {
+    const setting = settings.find(s => s.settingKey === key);
+    return setting ? setting.settingValue : "";
+  };
   
   // Define form
   const form = useForm<ContactFormValues>({
@@ -150,95 +162,112 @@ export default function Contact() {
           
           <div>
             <div className="bg-white p-8 rounded-lg shadow-md h-full">
-              <h3 className="font-heading text-xl font-bold text-neutral mb-6">Contact Information</h3>
-              
-              <div className="space-y-6 mb-8">
-                <div className="flex items-start">
-                  <Mail className="text-accent mr-3 mt-1 h-5 w-5" />
-                  <div>
-                    <p className="font-medium text-neutral">Email</p>
-                    <a href="mailto:contact@diganth.art" className="text-accent hover:underline">
-                      contact@diganth.art
-                    </a>
+              {isLoadingSettings ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-border" />
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-heading text-xl font-bold text-neutral mb-6">Contact Information</h3>
+                  
+                  <div className="space-y-6 mb-8">
+                    <div className="flex items-start">
+                      <Mail className="text-accent mr-3 mt-1 h-5 w-5" />
+                      <div>
+                        <p className="font-medium text-neutral">Email</p>
+                        <a 
+                          href={`mailto:${getSettingValue("contactEmail") || "contact@diganth.art"}`} 
+                          className="text-accent hover:underline"
+                        >
+                          {getSettingValue("contactEmail") || "contact@diganth.art"}
+                        </a>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <Phone className="text-accent mr-3 mt-1 h-5 w-5" />
+                      <div>
+                        <p className="font-medium text-neutral">Phone</p>
+                        <a 
+                          href={`tel:${getSettingValue("contactPhone") || "+1 (234) 567-890"}`} 
+                          className="text-accent hover:underline"
+                        >
+                          {getSettingValue("contactPhone") || "+1 (234) 567-890"}
+                        </a>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <MapPin className="text-accent mr-3 mt-1 h-5 w-5" />
+                      <div>
+                        <p className="font-medium text-neutral">Studio Address</p>
+                        <p className="text-neutral whitespace-pre-line">
+                          {getSettingValue("contactAddress") || "123 Artist Way\nCreative District\nCity, State 12345"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <Phone className="text-accent mr-3 mt-1 h-5 w-5" />
-                  <div>
-                    <p className="font-medium text-neutral">Phone</p>
-                    <a href="tel:+1234567890" className="text-accent hover:underline">
-                      +1 (234) 567-890
-                    </a>
+                  
+                  <h3 className="font-heading text-xl font-bold text-neutral mb-4">Studio Hours</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div>
+                      <p className="font-medium text-neutral flex items-center">
+                        <Clock className="h-4 w-4 mr-1" /> Monday - Friday
+                      </p>
+                      <p className="text-neutral">10:00 AM - 6:00 PM</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-neutral flex items-center">
+                        <Clock className="h-4 w-4 mr-1" /> Saturday
+                      </p>
+                      <p className="text-neutral">11:00 AM - 4:00 PM</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-neutral flex items-center">
+                        <Clock className="h-4 w-4 mr-1" /> Sunday
+                      </p>
+                      <p className="text-neutral">Closed</p>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <MapPin className="text-accent mr-3 mt-1 h-5 w-5" />
-                  <div>
-                    <p className="font-medium text-neutral">Studio Address</p>
-                    <p className="text-neutral">
-                      123 Artist Way<br />
-                      Creative District<br />
-                      City, State 12345
-                    </p>
+                  
+                  <h3 className="font-heading text-xl font-bold text-neutral mb-4">Connect</h3>
+                  <div className="flex space-x-4">
+                    {getSettingValue("instagramUrl") && (
+                      <a 
+                        href={getSettingValue("instagramUrl")} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral hover:text-accent transition"
+                        aria-label="Instagram"
+                      >
+                        <Instagram className="h-6 w-6" />
+                      </a>
+                    )}
+                    {getSettingValue("facebookUrl") && (
+                      <a 
+                        href={getSettingValue("facebookUrl")} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral hover:text-accent transition"
+                        aria-label="Facebook"
+                      >
+                        <Facebook className="h-6 w-6" />
+                      </a>
+                    )}
+                    {getSettingValue("twitterUrl") && (
+                      <a 
+                        href={getSettingValue("twitterUrl")} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral hover:text-accent transition"
+                        aria-label="Twitter"
+                      >
+                        <Twitter className="h-6 w-6" />
+                      </a>
+                    )}
                   </div>
-                </div>
-              </div>
-              
-              <h3 className="font-heading text-xl font-bold text-neutral mb-4">Studio Hours</h3>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div>
-                  <p className="font-medium text-neutral flex items-center">
-                    <Clock className="h-4 w-4 mr-1" /> Monday - Friday
-                  </p>
-                  <p className="text-neutral">10:00 AM - 6:00 PM</p>
-                </div>
-                <div>
-                  <p className="font-medium text-neutral flex items-center">
-                    <Clock className="h-4 w-4 mr-1" /> Saturday
-                  </p>
-                  <p className="text-neutral">11:00 AM - 4:00 PM</p>
-                </div>
-                <div>
-                  <p className="font-medium text-neutral flex items-center">
-                    <Clock className="h-4 w-4 mr-1" /> Sunday
-                  </p>
-                  <p className="text-neutral">Closed</p>
-                </div>
-              </div>
-              
-              <h3 className="font-heading text-xl font-bold text-neutral mb-4">Connect</h3>
-              <div className="flex space-x-4">
-                <a 
-                  href="#" 
-                  className="text-neutral hover:text-accent transition"
-                  aria-label="Instagram"
-                >
-                  <i className="bx bxl-instagram text-2xl"></i>
-                </a>
-                <a 
-                  href="#" 
-                  className="text-neutral hover:text-accent transition"
-                  aria-label="Facebook"
-                >
-                  <i className="bx bxl-facebook text-2xl"></i>
-                </a>
-                <a 
-                  href="#" 
-                  className="text-neutral hover:text-accent transition"
-                  aria-label="Pinterest"
-                >
-                  <i className="bx bxl-pinterest text-2xl"></i>
-                </a>
-                <a 
-                  href="#" 
-                  className="text-neutral hover:text-accent transition"
-                  aria-label="YouTube"
-                >
-                  <i className="bx bxl-youtube text-2xl"></i>
-                </a>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
