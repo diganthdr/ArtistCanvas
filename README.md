@@ -280,7 +280,13 @@ If you encounter database connection errors:
 
 3. Reset the admin password:
    ```sql
-   UPDATE users SET password = '$2a$10$7F.vOwE.OO.PUcUHWtfdZu9TvqUEoguDYDFJsrdgNLc.F5FCgkwrC' WHERE username = 'admin';
+   -- This updates the password to "admin@420"
+   UPDATE users SET password = '$2b$10$dukNr/eZpLUe2eAjUQ1K8uk9ZPJxVEQVRNgCa6cHgR8Af97wLdt0C' WHERE username = 'admin';
+   ```
+   
+   Alternatively, generate a new bcrypt hash:
+   ```bash
+   node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('your_new_password', 10));"
    ```
 
 ### File Upload Issues
