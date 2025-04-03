@@ -8,7 +8,8 @@ import {
   insertContactSchema,
   insertSubscriberSchema,
   insertOrderSchema,
-  insertOrderItemSchema 
+  insertOrderItemSchema,
+  insertSiteSettingsSchema
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -565,6 +566,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+
+  // Site Settings routes
+  app.get("/api/site-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json(settings);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch site settings" });
+    }
+  });
+
+  app.get("/api/site-settings/:key", async (req, res) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getSiteSettingByKey(key);
+      
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      
+      res.json(setting);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch site setting" });
+    }
+  });
+
+  app.post("/api/site-settings", isAdmin, async (req, res) => {
+    try {
+      const settingData = insertSiteSettingsSchema.parse(req.body);
+      const setting = await storage.createSiteSetting(settingData);
+      res.status(201).json(setting);
+    } catch (err) {
+      handleZodError(err, res);
+    }
+  });
+
+  app.put("/api/site-settings/:key", isAdmin, async (req, res) => {
+    try {
+      const key = req.params.key;
+      const { settingValue } = req.body;
+      
+      if (!settingValue || typeof settingValue !== 'string') {
+        return res.status(400).json({ message: "Setting value is required" });
+      }
+      
+      const setting = await storage.updateSiteSetting(key, settingValue);
+      res.json(setting);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to update site setting" });
     }
   });
 

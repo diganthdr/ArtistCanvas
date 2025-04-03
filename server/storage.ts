@@ -6,7 +6,8 @@ import {
   contacts, Contact, InsertContact,
   subscribers, Subscriber, InsertSubscriber,
   orders, Order, InsertOrder,
-  orderItems, OrderItem, InsertOrderItem
+  orderItems, OrderItem, InsertOrderItem,
+  siteSettings, SiteSetting, InsertSiteSetting
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -53,6 +54,12 @@ export interface IStorage {
   getOrderById(id: number): Promise<{ order: Order, items: OrderItem[] } | undefined>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   
+  // Site Settings methods
+  getSiteSettings(): Promise<SiteSetting[]>;
+  getSiteSettingByKey(key: string): Promise<SiteSetting | undefined>;
+  updateSiteSetting(key: string, value: string): Promise<SiteSetting>;
+  createSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting>;
+  
   // Session store
   sessionStore: session.Store;
 }
@@ -66,6 +73,7 @@ export class MemStorage implements IStorage {
   private subscribers: Map<number, Subscriber>;
   private orders: Map<number, Order>;
   private orderItems: Map<number, OrderItem[]>;
+  private siteSettings: Map<number, SiteSetting>;
   public sessionStore: session.Store;
   private currentIds: {
     user: number;
@@ -76,6 +84,7 @@ export class MemStorage implements IStorage {
     subscriber: number;
     order: number;
     orderItem: number;
+    siteSetting: number;
   };
 
   constructor() {
@@ -87,6 +96,7 @@ export class MemStorage implements IStorage {
     this.subscribers = new Map();
     this.orders = new Map();
     this.orderItems = new Map();
+    this.siteSettings = new Map();
     
     // Initialize with a default memory store
     this.sessionStore = new session.MemoryStore();
@@ -100,6 +110,7 @@ export class MemStorage implements IStorage {
       subscriber: 1,
       order: 1,
       orderItem: 1,
+      siteSetting: 1,
     };
 
     // Initialize with sample data
@@ -547,6 +558,52 @@ export class MemStorage implements IStorage {
     const updatedOrder: Order = { ...order, status };
     this.orders.set(id, updatedOrder);
     return updatedOrder;
+  }
+
+  // Site Settings methods
+  async getSiteSettings(): Promise<SiteSetting[]> {
+    return Array.from(this.siteSettings.values());
+  }
+
+  async getSiteSettingByKey(key: string): Promise<SiteSetting | undefined> {
+    return Array.from(this.siteSettings.values()).find(
+      setting => setting.settingKey === key
+    );
+  }
+
+  async updateSiteSetting(key: string, value: string): Promise<SiteSetting> {
+    // Check if setting exists
+    const existingSetting = await this.getSiteSettingByKey(key);
+    
+    if (existingSetting) {
+      // Update existing setting
+      const updatedSetting: SiteSetting = { 
+        ...existingSetting, 
+        settingValue: value,
+        updatedAt: new Date()
+      };
+      this.siteSettings.set(existingSetting.id, updatedSetting);
+      return updatedSetting;
+    } else {
+      // Create new setting if it doesn't exist
+      return await this.createSiteSetting({
+        settingKey: key,
+        settingValue: value
+      });
+    }
+  }
+
+  async createSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting> {
+    const id = this.currentIds.siteSetting++;
+    const now = new Date();
+    const newSetting: SiteSetting = {
+      id,
+      settingKey: setting.settingKey,
+      settingValue: setting.settingValue,
+      updatedAt: now
+    };
+    this.siteSettings.set(id, newSetting);
+    return newSetting;
   }
 }
 

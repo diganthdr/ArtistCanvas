@@ -22,6 +22,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminArtworks from "./pages/admin/AdminArtworks";
 import AdminWorkshops from "./pages/admin/AdminWorkshops";
 import AdminRegistrations from "./pages/admin/AdminRegistrations";
+import AdminSettings from "./pages/admin/AdminSettings";
 import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
@@ -52,6 +53,7 @@ function Router() {
           <AdminRoute path="/admin/artworks" component={AdminArtworks} />
           <AdminRoute path="/admin/workshops" component={AdminWorkshops} />
           <AdminRoute path="/admin/registrations" component={AdminRegistrations} />
+          <AdminRoute path="/admin/settings" component={AdminSettings} />
           
           <Route component={NotFound} />
         </Switch>

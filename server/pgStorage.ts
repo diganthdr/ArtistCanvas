@@ -1,8 +1,8 @@
 import { IStorage } from "./storage";
 import { 
-  users, artworks, workshops, registrations, contacts, subscribers, orders, orderItems,
-  type User, type Artwork, type Workshop, type Registration, type Contact, type Subscriber, type Order, type OrderItem,
-  type InsertUser, type InsertArtwork, type InsertWorkshop, type InsertRegistration, type InsertContact, type InsertSubscriber, type InsertOrder, type InsertOrderItem
+  users, artworks, workshops, registrations, contacts, subscribers, orders, orderItems, siteSettings,
+  type User, type Artwork, type Workshop, type Registration, type Contact, type Subscriber, type Order, type OrderItem, type SiteSetting,
+  type InsertUser, type InsertArtwork, type InsertWorkshop, type InsertRegistration, type InsertContact, type InsertSubscriber, type InsertOrder, type InsertOrderItem, type InsertSiteSetting
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -200,5 +200,44 @@ export class PgStorage implements IStorage {
       .returning();
     
     return updatedOrder;
+  }
+
+  // Site Settings methods
+  async getSiteSettings(): Promise<SiteSetting[]> {
+    return await db.select().from(siteSettings);
+  }
+
+  async getSiteSettingByKey(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db.select()
+      .from(siteSettings)
+      .where(eq(siteSettings.settingKey, key));
+    return setting;
+  }
+
+  async updateSiteSetting(key: string, value: string): Promise<SiteSetting> {
+    // Check if setting exists
+    const existingSetting = await this.getSiteSettingByKey(key);
+    
+    if (existingSetting) {
+      // Update existing setting
+      const [updatedSetting] = await db.update(siteSettings)
+        .set({ settingValue: value, updatedAt: new Date() })
+        .where(eq(siteSettings.settingKey, key))
+        .returning();
+      return updatedSetting;
+    } else {
+      // Create new setting if it doesn't exist
+      return await this.createSiteSetting({
+        settingKey: key,
+        settingValue: value
+      });
+    }
+  }
+
+  async createSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting> {
+    const [newSetting] = await db.insert(siteSettings)
+      .values(setting)
+      .returning();
+    return newSetting;
   }
 }

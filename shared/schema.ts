@@ -153,3 +153,19 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+
+// Site Settings model
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  settingKey: text("setting_key").notNull().unique(),
+  settingValue: text("setting_value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSiteSettingsSchema = createInsertSchema(siteSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingsSchema>;
