@@ -161,11 +161,19 @@ export function setupAuth(app: Express) {
     
     next();
   };
+  
+  // Check if user is authenticated but doesn't check for admin rights
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    next();
+  };
 
   // Admin-only routes
   app.get("/api/admin/check", isAdmin, (req, res) => {
     res.json({ message: "You are an admin" });
   });
 
-  return { isAdmin };
+  return { isAdmin, isAuthenticated };
 }

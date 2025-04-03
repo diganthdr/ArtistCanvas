@@ -19,7 +19,7 @@ import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
-  const { isAdmin } = setupAuth(app);
+  const { isAdmin, isAuthenticated } = setupAuth(app);
 
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -335,6 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Make workshop registrations viewable by admin only
   app.get("/api/workshops/:id/registrations", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
